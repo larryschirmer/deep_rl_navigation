@@ -20,7 +20,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
     (loss_fn, optimizer) = training
     (buffer_size, replay, batch_size) = exp_replay
     (e, a, c, c_step) = double_per
-    (losses, scores) = metrics
+    (losses, scores, average_scores) = metrics
 
     use_GPU = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_GPU else "cpu")
@@ -139,21 +139,23 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 optimizer.step()
 
                 epoch_losses.append(loss.item())
-                losses.append(loss.item())
 
             state = next_state
 
             if done:
                 status = 0
 
-        if epsilon > 0.1:
-            epsilon -= (1/epochs)
+        if epsilon > 0.3:
+            epsilon -= (1/500)
 
         # print stats
         scores.append(score)
         epoch_loss = 0. if len(epoch_losses) == 0 else np.average(epoch_losses)
-        print("epoch {}, loss: {:.2f}, score: {}".format(
-            i, 0. if math.isnan(epoch_loss) else epoch_loss, score))
+        losses.append(epoch_loss)
+        average_score = 0. if len(scores) < 101 else np.average(scores[-100:])
+        average_scores.append(average_score)
+        print("epoch {}, loss: {:.2f}, epsilon: {:.2f}, score: {} - avg: {:.2f}".format(
+            i, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, score, average_score))
 
 
 def running_mean(x, N=500):
@@ -165,7 +167,7 @@ def plot_losses(losses, filename):
     plt.figure(figsize=(15, 10))
     plt.ylabel("Loss")
     plt.xlabel("Training Steps")
-    plt.plot(running_mean(losses))
+    plt.plot(np.arange(len(losses)), losses)
 
     if (filename):
         plt.savefig(filename)
