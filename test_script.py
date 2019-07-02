@@ -1,29 +1,30 @@
 # dropped epsilon limit, turned up learning rate
 from unityagents import UnityEnvironment
+import numpy as np
 import copy
 
 from model import get_model
 from helpers import train_model, save_model, plot_losses, plot_scores, test_model, load_model
 
 # hyperparameters
-lr = 0.001
-gamma = 0.85
+lr = 0.0005
+gamma = 0.98
 
-batch_size = 10
+batch_size = 20
 buffer_size = 5000
 
-c = 750
+c = 1000
 c_step = 0
 e = 0.01
-a = 1.5
+a = 0.7
 
 input_depth = 37
-hidden0 = 128
-hidden1 = 128
-hidden2 = 128
+hidden0 = 256
+hidden1 = 256
+hidden2 = 256
 output_depth = 4
 
-replay = []
+replay = np.array([[0,0,0,0,0]])
 
 model, loss_fn, optimizer = get_model(input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 

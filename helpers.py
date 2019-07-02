@@ -94,20 +94,21 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
             # Update replay buffer
             if (len(replay) < buffer_size):
-                replay.append((state, action, reward, next_state, priority))
+                replay = np.vstack((replay, np.array(
+                    [state_, action, reward, next_state_, priority])))
             else:
-                replay.pop(0)
-                replay.append((state, action, reward, next_state, priority))
+                replay = np.delete(replay, 0, axis=0)
+                replay = np.vstack((replay, np.array(
+                    [state_, action, reward, next_state_, priority])))
 
             # Retrain Model
             if (len(replay) == buffer_size):
                 # normalize priority list
-                priorities = [states[4] for states in replay]
+                priorities = np.take(replay, [4], axis=1).flatten().astype(float)
                 priorities = priorities/np.sum(priorities)
 
                 # make a randon weighted choice from which experiences to learn from
-                mini_batch = random.choices(
-                    replay, weights=priorities, k=batch_size)
+                mini_batch = np.random.choice(replay.shape[0], size=batch_size, p=priorities)
 
                 X_train = Variable(torch.empty(
                     batch_size, 4, dtype=torch.float)).to(device)
@@ -119,7 +120,14 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 for memory in mini_batch:
                     # new_qval = qval + step * (R(+1) + discount * max_new_Q - qval)
 
-                    old_state_m, action_m, reward_m, new_state_m, priority = memory
+                    old_state_m_, action_m, reward_m, new_state_m_, priority = replay[memory, :]
+
+                    # convert states to tensors
+                    old_state_m = Variable(torch.from_numpy(
+                        old_state_m_).float()).to(device)
+                    new_state_m = Variable(torch.from_numpy(
+                        new_state_m_).float()).to(device)
+
                     old_qval = model(old_state_m)
                     new_qval = model_(new_state_m).cpu().data.numpy()
                     max_new_Q = np.max(new_qval)
@@ -147,7 +155,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 status = 0
 
         if epsilon > 0.1:
-            epsilon = (0.1 - 1) / (1 - 0) * i + 1.
+            epsilon = (0.1 - 1) / (epochs - 0) * i + 1.
 
         # print stats
         scores.append(score)
@@ -157,7 +165,6 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
         average_scores.append(average_score)
         print("epoch {}, loss: {:.2f}, epsilon: {:.2f}, score: {} - avg: {:.2f}".format(
             i, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, score, average_score))
-
 
 
 def plot_losses(losses, filename):
@@ -182,7 +189,7 @@ def plot_scores(scores, filename, plotName='Score'):
 
     if (filename):
         plt.savefig(filename)
-    
+
     plt.show()
 
 
