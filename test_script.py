@@ -7,7 +7,7 @@ from helpers import train_model, save_model, plot_losses, plot_scores, test_mode
 
 # hyperparameters
 lr = 0.001
-gamma = 0.9
+gamma = 0.85
 
 batch_size = 10
 buffer_size = 5000
@@ -15,7 +15,7 @@ buffer_size = 5000
 c = 750
 c_step = 0
 e = 0.01
-a = 0.5
+a = 1.5
 
 input_depth = 37
 hidden0 = 128
@@ -28,7 +28,7 @@ replay = []
 model, loss_fn, optimizer = get_model(input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 
 # filename = '0-1000-checkpoint.pt'
-# model, optimizer, replay = load_model(model, optimizer, filename)
+# model, optimizer, replay = load_model(model, optimizer, filename, evalMode=False)
 
 model_ = copy.deepcopy(model)
 
@@ -38,7 +38,7 @@ brain = env.brains[brain_name]
 
 # train model
 
-epochs = 3000
+epochs = 1000
 epsilon = 1.0  # decays over the course of training
 losses = []
 scores = []
@@ -54,14 +54,14 @@ metrics = (losses, scores, average_scores)
 train_model(hyperparams, actor_env, training, exp_replay,
             double_per, metrics, manual_override=False)
 
-save_model(model, optimizer, replay, '0-3000-checkpoint.pt')
+save_model(model, optimizer, replay, 'checkpoint-{}.pt'.format(epochs))
 
-plot_losses(losses, 'losses-0-3000.png')
-plot_scores(scores, 'scores-0-3000.png')
-plot_scores(average_scores, 'scores-0-3000.png')
+plot_losses(losses, 'losses-{}.png'.format(epochs))
+plot_scores(scores, 'scores-{}.png'.format(epochs))
+plot_scores(average_scores, 'scores-{}.png'.format(epochs), 'Ave Score')
 
 test_actor_env = (model, brain_name, env)
 attemps = 100
-filename = 'test_scores-0-3000.png'
+filename = 'test_scores-{}.png'.format(epochs)
 
 test_model(test_actor_env, attemps, filename)

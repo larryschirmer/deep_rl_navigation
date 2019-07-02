@@ -42,13 +42,14 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
         env_info = env.reset(train_mode=True)[brain_name]
 
         # St
-        state_ = env_info.vector_observations[0].reshape(1, 37)
+        state_ = env_info.vector_observations
         state = Variable(torch.from_numpy(state_).float()).to(device)
 
         while(status == 1):
             # copy weights into target net every c iterations
             c_step += 1
             if c_step > c:
+                print('Q_hat update...')
                 model_.load_state_dict(model.state_dict())
                 c_step = 0
 
@@ -120,7 +121,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
                     old_state_m, action_m, reward_m, new_state_m, priority = memory
                     old_qval = model(old_state_m)
-                    new_qval = model(new_state_m).cpu().data.numpy()
+                    new_qval = model_(new_state_m).cpu().data.numpy()
                     max_new_Q = np.max(new_qval)
 
                     y = torch.zeros((1, 4))
@@ -145,8 +146,8 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             if done:
                 status = 0
 
-        if epsilon > 0.3:
-            epsilon -= (1/500)
+        if epsilon > 0.1:
+            epsilon = (0.1 - 1) / (1 - 0) * i + 1.
 
         # print stats
         scores.append(score)
@@ -158,13 +159,10 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             i, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, score, average_score))
 
 
-def running_mean(x, N=500):
-    cumsum = np.cumsum(np.insert(x, 0, 0))
-    return (cumsum[N:] - cumsum[:-N]) / float(N)
-
 
 def plot_losses(losses, filename):
-    plt.figure(figsize=(15, 10))
+    fig = plt.figure()
+    fig.add_subplot(111)
     plt.ylabel("Loss")
     plt.xlabel("Training Steps")
     plt.plot(np.arange(len(losses)), losses)
@@ -172,17 +170,20 @@ def plot_losses(losses, filename):
     if (filename):
         plt.savefig(filename)
 
+    plt.show()
 
-def plot_scores(scores, filename):
+
+def plot_scores(scores, filename, plotName='Score'):
     fig = plt.figure()
     fig.add_subplot(111)
     plt.plot(np.arange(len(scores)), scores)
-    plt.ylabel('Score')
+    plt.ylabel(plotName)
     plt.xlabel('Episode #')
-    plt.show()
 
     if (filename):
         plt.savefig(filename)
+    
+    plt.show()
 
 
 def save_model(model, optimizer, replay, filename):
@@ -196,11 +197,16 @@ def save_model(model, optimizer, replay, filename):
     torch.save(state, filename)
 
 
-def load_model(model, optimizer, filename):
+def load_model(model, optimizer, filename, evalMode=True):
     checkpoint = torch.load(filename)
     model.load_state_dict(checkpoint['state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer'])
     replay = checkpoint['replay']
+
+    if evalMode:
+        model.eval()
+    else:
+        model.train()
 
     return model, optimizer, replay
 
