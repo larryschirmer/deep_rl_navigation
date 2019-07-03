@@ -7,21 +7,22 @@ from model import get_model
 from helpers import train_model, save_model, plot_losses, plot_scores, test_model, load_model
 
 # hyperparameters
-lr = 0.0005
-gamma = 0.98
+# lr = 0.0000000001
+lr = 0.000000001
+gamma = 0.9
 
-batch_size = 20
-buffer_size = 5000
+batch_size = 2
+buffer_size = 1000
 
-c = 1000
+c = 5000
 c_step = 0
 e = 0.01
 a = 0.7
 
 input_depth = 37
-hidden0 = 256
-hidden1 = 256
-hidden2 = 256
+hidden0 = 128
+hidden1 = 512
+hidden2 = 128
 output_depth = 4
 
 replay = np.array([[0,0,0,0,0]])
@@ -39,7 +40,7 @@ brain = env.brains[brain_name]
 
 # train model
 
-epochs = 1000
+epochs = 500
 epsilon = 1.0  # decays over the course of training
 losses = []
 scores = []

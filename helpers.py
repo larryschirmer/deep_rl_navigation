@@ -54,8 +54,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 c_step = 0
 
             # predicted Q values from current state
-            qval = model(state)
-            qval_ = qval.cpu().data.numpy()
+            qval = model(state).cpu().data.numpy()
 
             # select the next action using an epsilon greedy policy
             if manual_override:
@@ -70,7 +69,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             elif (random.random() < epsilon):
                 action = np.random.randint(0, 4)
             else:
-                action = (np.argmax(qval_))
+                action = (np.argmax(qval))
 
             # send the action to the environment
             env_info = env.step(action)[brain_name]
@@ -89,7 +88,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             update = (reward + (gamma * max_Q))
 
             # get the error and a measure of how surprising it was to the network
-            error = np.absolute(qval_[0][action] - update)
+            error = np.absolute(qval[0][action] - update)
             priority = (error + e) ** a
 
             # Update replay buffer
@@ -110,11 +109,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 # make a randon weighted choice from which experiences to learn from
                 mini_batch = np.random.choice(replay.shape[0], size=batch_size, p=priorities)
 
-                X_train = Variable(torch.empty(
-                    batch_size, 4, dtype=torch.float)).to(device)
-                y_train = Variable(torch.empty(
-                    batch_size, 4, dtype=torch.float)).to(device)
-                h = 0
+                batch_losses = []
 
                 # train the network on a batch of saved Action-State-Rewards
                 for memory in mini_batch:
@@ -129,25 +124,21 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                         new_state_m_).float()).to(device)
 
                     old_qval = model(old_state_m)
-                    new_qval = model_(new_state_m).cpu().data.numpy()
-                    max_new_Q = np.max(new_qval)
+                    max_new_Q = np.max(model_(new_state_m).cpu().data.numpy())
+                    update_m = (reward_m + (gamma * max_new_Q))
 
                     y = torch.zeros((1, 4))
                     y[:] = old_qval[:]
-
-                    update_m = (reward_m + (gamma * max_new_Q))
-
                     y[0][action_m] = update_m
-                    X_train[h] = old_qval
-                    y_train[h] = Variable(y).to(device)
-                    h += 1
 
-                loss = loss_fn(X_train, y_train)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                    loss = loss_fn(old_qval, y)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
 
-                epoch_losses.append(loss.item())
+                    batch_losses.append(loss.item())
+
+                epoch_losses.append(np.sum(batch_losses))
 
             state = next_state
 
@@ -163,7 +154,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
         losses.append(epoch_loss)
         average_score = 0. if len(scores) < 101 else np.average(scores[-100:])
         average_scores.append(average_score)
-        print("epoch {}, loss: {:.2f}, epsilon: {:.2f}, score: {} - avg: {:.2f}".format(
+        print("epoch {}, loss: {:.5f}, epsilon: {:.2f}, score: {} - avg: {:.2f}".format(
             i, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, score, average_score))
 
 
