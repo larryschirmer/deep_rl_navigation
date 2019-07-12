@@ -13,13 +13,13 @@ d_pad = {
 }
 
 
-def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics, manual_override=False):
+def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics):
 
     (epochs, epsilon, gamma) = hyperparams
     (model, model_, brain_name, env) = actor_env
     (loss_fn, optimizer) = training
     (buffer_size, replay, batch_size) = exp_replay
-    (e, a, c, c_step) = double_per
+    (e, a, b, c, c_step) = double_per
     (losses, scores, average_scores) = metrics
 
     use_GPU = torch.cuda.is_available()
@@ -33,9 +33,11 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
     model = model.to(device)
     model_ = model_.to(device)
 
+    start_epsilon = epsilon
+    start_b = b
     epoch_losses = []
 
-    for i in range(epochs):
+    for epoch in range(epochs):
         # reset the environment
         score = 0
         status = 1
@@ -49,7 +51,6 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             # copy weights into target net every c iterations
             c_step += 1
             if c_step > c:
-                print('Q_hat update...')
                 model_.load_state_dict(model.state_dict())
                 c_step = 0
 
@@ -57,16 +58,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             qval = model(state).cpu().data.numpy()
 
             # select the next action using an epsilon greedy policy
-            if manual_override:
-                user_input = -1
-
-                while(user_input not in [0, 1, 2, 3]):
-                    try:
-                        user_input = int(d_pad[input("--drive--")])
-                        action = user_input
-                    except:
-                        user_input = -1
-            elif (random.random() < epsilon):
+            if (random.random() < epsilon):
                 action = np.random.randint(0, 4)
             else:
                 action = (np.argmax(qval))
@@ -90,32 +82,39 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             # get the error and a measure of how surprising it was to the network
             error = np.absolute(qval[0][action] - update)
             priority = (error + e) ** a
+            sample_importance = ((1/buffer_size) * (1/priority)) ** b
 
             # Update replay buffer
             if (len(replay) < buffer_size):
                 replay = np.vstack((replay, np.array(
-                    [state_, action, reward, next_state_, priority])))
+                    [state_, action, reward, next_state_, sample_importance])))
             else:
                 replay = np.delete(replay, 0, axis=0)
                 replay = np.vstack((replay, np.array(
-                    [state_, action, reward, next_state_, priority])))
+                    [state_, action, reward, next_state_, sample_importance])))
 
             # Retrain Model
             if (len(replay) == buffer_size):
                 # normalize priority list
-                priorities = np.take(replay, [4], axis=1).flatten().astype(float)
+                priorities = np.take(
+                    replay, [4], axis=1).flatten().astype(float)
                 priorities = priorities/np.sum(priorities)
 
                 # make a randon weighted choice from which experiences to learn from
-                mini_batch = np.random.choice(replay.shape[0], size=batch_size, p=priorities)
+                mini_batch = np.random.choice(
+                    replay.shape[0], size=batch_size, p=priorities)
 
-                batch_losses = []
+                X_train = Variable(torch.empty(
+                    batch_size, 4, dtype=torch.float))
+                y_train = Variable(torch.empty(
+                    batch_size, 4, dtype=torch.float))
+                h = 0
 
                 # train the network on a batch of saved Action-State-Rewards
                 for memory in mini_batch:
                     # new_qval = qval + step * (R(+1) + discount * max_new_Q - qval)
 
-                    old_state_m_, action_m, reward_m, new_state_m_, priority = replay[memory, :]
+                    old_state_m_, action_m, reward_m, new_state_m_, _ = replay[memory, :]
 
                     # convert states to tensors
                     old_state_m = Variable(torch.from_numpy(
@@ -131,14 +130,16 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                     y[:] = old_qval[:]
                     y[0][action_m] = update_m
 
-                    loss = loss_fn(old_qval, y)
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
+                    X_train[h] = old_qval
+                    y_train[h] = Variable(y)
+                    h += 1
 
-                    batch_losses.append(loss.item())
+                loss = loss_fn(X_train, y_train)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
-                epoch_losses.append(np.sum(batch_losses))
+                epoch_losses.append(loss.item())
 
             state = next_state
 
@@ -146,7 +147,11 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 status = 0
 
         if epsilon > 0.1:
-            epsilon = (0.1 - 1) / (epochs - 0) * i + 1.
+            epsilon = (0.1 - start_epsilon) / \
+                (epochs - 0) * epoch + start_epsilon
+
+        if b < 1.:
+            b = (1. - start_b) / (epochs - 0) * epoch + start_b
 
         # print stats
         scores.append(score)
@@ -154,8 +159,8 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
         losses.append(epoch_loss)
         average_score = 0. if len(scores) < 101 else np.average(scores[-100:])
         average_scores.append(average_score)
-        print("epoch {}, loss: {:.5f}, epsilon: {:.2f}, score: {} - avg: {:.2f}".format(
-            i, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, score, average_score))
+        print("epoch {}, loss: {:.5f}, epsilon: {:.2f}, b: {:.2f}, avg: {:.2f} :: {}".format(
+            epoch, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, b, average_score, score))
 
 
 def plot_losses(losses, filename):
@@ -168,8 +173,6 @@ def plot_losses(losses, filename):
     if (filename):
         plt.savefig(filename)
 
-    plt.show()
-
 
 def plot_scores(scores, filename, plotName='Score'):
     fig = plt.figure()
@@ -180,8 +183,6 @@ def plot_scores(scores, filename, plotName='Score'):
 
     if (filename):
         plt.savefig(filename)
-
-    plt.show()
 
 
 def save_model(model, optimizer, replay, filename):
