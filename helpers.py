@@ -1,8 +1,9 @@
 import torch
 from torch.autograd import Variable
-import random
-import numpy as np
+from time import sleep
 from matplotlib import pyplot as plt
+import numpy as np
+import random
 import math
 
 d_pad = {
@@ -203,7 +204,7 @@ def load_model(model, optimizer, filename, evalMode=True):
     return model, optimizer, replay
 
 
-def test_model(actor_env, attemps, filename):
+def test_model(actor_env, attemps, filename, viewable=False):
     (model, brain_name, env) = actor_env
 
     use_GPU = torch.cuda.is_available()
@@ -232,6 +233,8 @@ def test_model(actor_env, attemps, filename):
             action = (np.argmax(qval_))
 
             # send the action to the environment
+            if viewable:
+                sleep(.03)
             env_info = env.step(action)[brain_name]
 
             # get the next state

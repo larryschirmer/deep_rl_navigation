@@ -1,5 +1,6 @@
 # dropped epsilon limit, turned up learning rate
 from unityagents import UnityEnvironment
+from time import perf_counter
 import numpy as np
 import copy
 
@@ -29,8 +30,8 @@ replay = []
 model, loss_fn, optimizer = get_model(
     input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 
-# filename = '0-1000-checkpoint.pt'
-# model, optimizer, replay = load_model(model, optimizer, filename, evalMode=False)
+# filename = 'checkpoint-2000.pt'
+# model, optimizer, replay = load_model(model, optimizer, filename)
 
 model_ = copy.deepcopy(model)
 
@@ -53,9 +54,11 @@ exp_replay = (buffer_size, replay, batch_size)
 double_per = (e, a, b, c, c_step)
 metrics = (losses, scores, average_scores)
 
+start = perf_counter()
 train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics)
-
 save_model(model, optimizer, replay, 'checkpoint-{}.pt'.format(epochs))
+end = perf_counter()
+print((end - start))
 
 plot_losses(losses, 'losses-{}.png'.format(epochs))
 plot_scores(scores, 'scores-{}.png'.format(epochs))
@@ -63,6 +66,6 @@ plot_scores(average_scores, 'scores-{}.png'.format(epochs), 'Ave Score')
 
 test_actor_env = (model, brain_name, env)
 attemps = 100
-filename = 'test_scores-{}.png'.format(epochs)
+filename = 'test_scores-{}-{}.png'.format(epochs, attemps)
 
-test_model(test_actor_env, attemps, filename)
+test_model(test_actor_env, attemps, filename, viewable=False)
