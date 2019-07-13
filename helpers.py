@@ -125,10 +125,10 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
         if epsilon > 0.1:
             epsilon = (0.1 - start_epsilon) / \
-                (2000 - 0) * epoch + start_epsilon
+                (epochs - 0) * epoch + start_epsilon
 
         if b < 1.:
-            b = (1. - start_b) / (2000 - 0) * epoch + start_b
+            b = (1. - start_b) / (epochs - 0) * epoch + start_b
 
         # print stats
         scores.append(score)
@@ -143,23 +143,27 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             early_stop_captures.append(average_score)
 
 
-def plot_losses(losses, filename):
+def plot_losses(losses, filename, show=False):
     fig = plt.figure()
     fig.add_subplot(111)
     plt.ylabel("Loss")
     plt.xlabel("Training Steps")
     plt.plot(np.arange(len(losses)), losses)
+    if show:
+        plt.show()
 
     if (filename):
         plt.savefig(filename)
 
 
-def plot_scores(scores, filename, plotName='Score'):
+def plot_scores(scores, filename, plotName='Score', show=False):
     fig = plt.figure()
     fig.add_subplot(111)
     plt.plot(np.arange(len(scores)), scores)
     plt.ylabel(plotName)
     plt.xlabel('Episode #')
+    if show:
+        plt.show()
 
     if (filename):
         plt.savefig(filename)
@@ -188,7 +192,7 @@ def load_model(model, optimizer, filename, evalMode=True):
     return model, optimizer, replay
 
 
-def test_model(actor_env, attemps, filename, viewable=False):
+def test_model(actor_env, attemps, filename, viewableSpeed=False):
     (model, brain_name, env) = actor_env
     epsilon = 0.15
 
@@ -214,7 +218,7 @@ def test_model(actor_env, attemps, filename, viewable=False):
                 action = (np.argmax(qval))
 
             # send the action to the environment
-            if viewable:
+            if viewableSpeed:
                 sleep(.03)
             env_info = env.step(action)[brain_name]
 

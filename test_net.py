@@ -40,4 +40,4 @@ test_actor_env = (model, brain_name, env)
 attemps = 100
 filename = 'test_scores-{}.png'.format(attemps)
 
-test_model(test_actor_env, attemps, filename, viewable=False)
+test_model(test_actor_env, attemps, filename, viewableSpeed=False)

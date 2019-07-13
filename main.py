@@ -1,7 +1,6 @@
 # dropped epsilon limit, turned up learning rate
 from unityagents import UnityEnvironment
 from time import perf_counter
-import numpy as np
 import copy
 
 from model import get_model
@@ -29,7 +28,6 @@ replay = []
 
 model, loss_fn, optimizer = get_model(
     input_depth, hidden0, hidden1, hidden2, output_depth, lr)
-
 model_ = copy.deepcopy(model)
 
 env = UnityEnvironment(file_name="Banana.app")
@@ -60,4 +58,4 @@ print((end - start))
 
 plot_losses(losses, 'losses-{}.png'.format(epochs))
 plot_scores(scores, 'scores-{}.png'.format(epochs))
-plot_scores(average_scores, 'ave-scores-{}.png'.format(epochs), 'Ave Score')
+plot_scores(average_scores, 'ave-scores-{}.png'.format(epochs),  plotName='Ave Score')
