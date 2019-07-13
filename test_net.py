@@ -29,7 +29,7 @@ replay = []
 model, loss_fn, optimizer = get_model(
     input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 
-filename = 'checkpoint-3500.pt'
+filename = 'checkpoint-2000.pt'
 model, optimizer, replay = load_model(model, optimizer, filename)
 
 env = UnityEnvironment(file_name="Banana.app")
