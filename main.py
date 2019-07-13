@@ -8,7 +8,7 @@ from model import get_model
 from helpers import train_model, save_model, plot_losses, plot_scores, test_model, load_model
 
 # hyperparameters
-lr = 0.0005
+lr = 0.0003
 gamma = 0.9
 
 batch_size = 10
@@ -38,7 +38,7 @@ brain = env.brains[brain_name]
 
 # train model
 
-epochs = 3000
+epochs = 2000
 epsilon = 1.0  # decays over the course of training
 losses = []
 scores = []
@@ -52,11 +52,12 @@ double_per = (e, a, b, c, c_step)
 metrics = (losses, scores, average_scores)
 
 start = perf_counter()
-train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics)
+train_model(hyperparams, actor_env, training, exp_replay, double_per,
+            metrics, early_stop_target=13., early_stop_threshold=3)
 save_model(model, optimizer, replay, 'checkpoint-{}.pt'.format(epochs))
 end = perf_counter()
 print((end - start))
 
 plot_losses(losses, 'losses-{}.png'.format(epochs))
 plot_scores(scores, 'scores-{}.png'.format(epochs))
-plot_scores(average_scores, 'scores-{}.png'.format(epochs), 'Ave Score')
+plot_scores(average_scores, 'ave-scores-{}.png'.format(epochs), 'Ave Score')

@@ -1,20 +1,12 @@
-import torch
-from torch.autograd import Variable
 from time import sleep
 from matplotlib import pyplot as plt
 import numpy as np
+import torch
 import random
 import math
 
-d_pad = {
-    'w': 0,
-    's': 1,
-    'a': 2,
-    'd': 3
-}
 
-
-def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics):
+def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics, early_stop_target=13., early_stop_threshold=5):
 
     (epochs, epsilon, gamma) = hyperparams
     (model, model_, brain_name, env) = actor_env
@@ -23,22 +15,17 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
     (e, a, b, c, c_step) = double_per
     (losses, scores, average_scores) = metrics
 
-    use_GPU = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_GPU else "cpu")
-    print(device)
-
-    if (use_GPU):
-        device_id = torch.cuda.current_device()
-        print(torch.cuda.get_device_name(device_id))
-
-    model = model.to(device)
-    model_ = model_.to(device)
-
     start_epsilon = epsilon
     start_b = b
     epoch_losses = []
+    early_stop_captures = []
 
     for epoch in range(epochs):
+        if len(early_stop_captures) >= early_stop_threshold:
+            print("stopped early because net has reached target score")
+            print(early_stop_captures)
+            break
+
         # reset the environment
         score = 0
         status = 1
@@ -46,7 +33,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
         # St
         state_ = env_info.vector_observations
-        state = Variable(torch.from_numpy(state_).float()).to(device)
+        state = torch.from_numpy(state_).float().clone()
 
         while(status == 1):
             # copy weights into target net every c iterations
@@ -56,7 +43,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 c_step = 0
 
             # predicted Q values from current state
-            qval = model(state).cpu().data.numpy()
+            qval = model(state).data.numpy()
 
             # select the next action using an epsilon greedy policy
             if (random.random() < epsilon):
@@ -67,8 +54,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             # send the action to the environment
             env_info = env.step(action)[brain_name]
             next_state_ = env_info.vector_observations      # get the next state
-            next_state = Variable(torch.from_numpy(
-                next_state_).float()).to(device)  # St(+1)
+            next_state = torch.from_numpy(next_state_).float().clone()  # St(+1)
 
             reward = env_info.rewards[0]                    # get the reward
             score += reward
@@ -77,7 +63,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             done = env_info.local_done[0]
 
             # get the largest expected reward from the target net
-            max_Q = np.max(model_(next_state).cpu().data.numpy())
+            max_Q = np.max(model_(next_state).detach().data.numpy())
             update = (reward + (gamma * max_Q))
 
             # get the error and a measure of how surprising it was to the network
@@ -103,10 +89,8 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
                 mini_batch = random.choices(
                     replay, weights=priorities, k=batch_size)
 
-                X_train = Variable(torch.empty(
-                    batch_size, 4, dtype=torch.float))
-                y_train = Variable(torch.empty(
-                    batch_size, 4, dtype=torch.float))
+                X_train = torch.empty(batch_size, 4).float().clone()
+                y_train = torch.empty(batch_size, 4).float().clone()
                 h = 0
 
                 # train the network on a batch of saved Action-State-Rewards
@@ -115,8 +99,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
                     old_state_m, action_m, reward_m, new_state_m, priority = memory
                     old_qval = model(old_state_m)
-                    new_qval = model(new_state_m).cpu().data.numpy()
-                    max_new_Q = np.max(new_qval)
+                    max_new_Q = np.max(model_(new_state_m).detach().data.numpy())
 
                     y = torch.zeros((1, 4))
                     y[:] = old_qval[:]
@@ -142,10 +125,10 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
 
         if epsilon > 0.1:
             epsilon = (0.1 - start_epsilon) / \
-                (epochs - 0) * epoch + start_epsilon
+                (2000 - 0) * epoch + start_epsilon
 
         if b < 1.:
-            b = (1. - start_b) / (epochs - 0) * epoch + start_b
+            b = (1. - start_b) / (2000 - 0) * epoch + start_b
 
         # print stats
         scores.append(score)
@@ -155,6 +138,9 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
         average_scores.append(average_score)
         print("epoch {}, loss: {:.5f}, epsilon: {:.2f}, b: {:.2f}, avg: {:.2f} :: {}".format(
             epoch, 0. if math.isnan(epoch_loss) else epoch_loss, epsilon, b, average_score, score))
+
+        if average_score >= early_stop_target:
+            early_stop_captures.append(average_score)
 
 
 def plot_losses(losses, filename):
@@ -180,8 +166,6 @@ def plot_scores(scores, filename, plotName='Score'):
 
 
 def save_model(model, optimizer, replay, filename):
-    model = model.cpu()
-
     state = {
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict(),
