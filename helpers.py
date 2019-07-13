@@ -206,12 +206,7 @@ def load_model(model, optimizer, filename, evalMode=True):
 
 def test_model(actor_env, attemps, filename, viewable=False):
     (model, brain_name, env) = actor_env
-
-    use_GPU = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_GPU else "cpu")
-    print(device)
-
-    model = model.to(device)
+    epsilon = 0.1
 
     scores = []
 
@@ -221,16 +216,19 @@ def test_model(actor_env, attemps, filename, viewable=False):
         state_ = env_info.vector_observations[0].reshape(1, 37)
 
         # St
-        state = Variable(torch.from_numpy(state_).float()).to(device)
+        state = Variable(torch.from_numpy(state_).float())
         score = 0                                          # initialize the score
 
         while True:
             # predicted Q values from current state
             qval = model(state)
-            qval_ = qval.cpu().data.numpy()
+            qval_ = qval.data.numpy()
 
-            # select an action
-            action = (np.argmax(qval_))
+            # select the next action using an epsilon greedy policy
+            if (random.random() < epsilon):
+                action = np.random.randint(0, 4)
+            else:
+                action = (np.argmax(qval_))
 
             # send the action to the environment
             if viewable:
@@ -240,7 +238,7 @@ def test_model(actor_env, attemps, filename, viewable=False):
             # get the next state
             next_state_ = env_info.vector_observations[0]
             next_state = Variable(torch.from_numpy(
-                next_state_).float()).to(device)  # St(+1)
+                next_state_).float())  # St(+1)
 
             # get the reward
             reward = env_info.rewards[0]

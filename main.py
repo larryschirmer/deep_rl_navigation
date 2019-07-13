@@ -30,7 +30,7 @@ replay = []
 model, loss_fn, optimizer = get_model(
     input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 
-# filename = 'checkpoint-2000.pt'
+# filename = 'checkpoint-3000.pt'
 # model, optimizer, replay = load_model(model, optimizer, filename)
 
 model_ = copy.deepcopy(model)
@@ -41,7 +41,7 @@ brain = env.brains[brain_name]
 
 # train model
 
-epochs = 2000
+epochs = 3000
 epsilon = 1.0  # decays over the course of training
 losses = []
 scores = []
