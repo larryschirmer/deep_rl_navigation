@@ -30,9 +30,6 @@ replay = []
 model, loss_fn, optimizer = get_model(
     input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 
-# filename = 'checkpoint-3000.pt'
-# model, optimizer, replay = load_model(model, optimizer, filename)
-
 model_ = copy.deepcopy(model)
 
 env = UnityEnvironment(file_name="Banana.app")
@@ -63,9 +60,3 @@ print((end - start))
 plot_losses(losses, 'losses-{}.png'.format(epochs))
 plot_scores(scores, 'scores-{}.png'.format(epochs))
 plot_scores(average_scores, 'scores-{}.png'.format(epochs), 'Ave Score')
-
-test_actor_env = (model, brain_name, env)
-attemps = 100
-filename = 'test_scores-{}-{}.png'.format(epochs, attemps)
-
-test_model(test_actor_env, attemps, filename, viewable=False)
