@@ -6,7 +6,7 @@ import random
 import math
 
 
-def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics, early_stop_target=13., early_stop_threshold=5):
+def train_model(hyperparams, actor_env, training, exp_replay, double_per, metrics, early_stop_target=13., early_stop_threshold=5, bonus_epochs=0):
 
     (epochs, epsilon, gamma) = hyperparams
     (model, model_, brain_name, env) = actor_env
@@ -20,7 +20,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
     epoch_losses = []
     early_stop_captures = []
 
-    for epoch in range(epochs):
+    for epoch in range(epochs + bonus_epochs):
         if len(early_stop_captures) >= early_stop_threshold:
             print("stopped early because net has reached target score")
             print(early_stop_captures)
@@ -143,7 +143,7 @@ def train_model(hyperparams, actor_env, training, exp_replay, double_per, metric
             early_stop_captures.append(average_score)
 
 
-def plot_losses(losses, filename, show=False):
+def plot_losses(losses, filename='', show=False):
     fig = plt.figure()
     fig.add_subplot(111)
     plt.ylabel("Loss")
@@ -156,7 +156,7 @@ def plot_losses(losses, filename, show=False):
         plt.savefig(filename)
 
 
-def plot_scores(scores, filename, plotName='Score', show=False):
+def plot_scores(scores, filename='', plotName='Score', show=False):
     fig = plt.figure()
     fig.add_subplot(111)
     plt.plot(np.arange(len(scores)), scores)
@@ -192,7 +192,7 @@ def load_model(model, optimizer, filename, evalMode=True):
     return model, optimizer, replay
 
 
-def test_model(actor_env, attemps, filename, viewableSpeed=False):
+def test_model(actor_env, attemps, filename='', viewableSpeed=False):
     (model, brain_name, env) = actor_env
     epsilon = 0.15
 
