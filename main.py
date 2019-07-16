@@ -1,37 +1,33 @@
 # dropped epsilon limit, turned up learning rate
 from unityagents import UnityEnvironment
-import numpy as np
+from time import perf_counter
 import copy
 
 from model import get_model
 from helpers import train_model, save_model, plot_losses, plot_scores, test_model, load_model
 
 # hyperparameters
-# lr = 0.0000000001
-lr = 0.000000001
+lr = 0.0003
 gamma = 0.9
 
-batch_size = 2
-buffer_size = 1000
+batch_size = 10
+buffer_size = 5000
 
-c = 5000
+c = 750
 c_step = 0
 e = 0.01
-a = 0.7
-
+a = 0.6
+b = 0.4
 input_depth = 37
 hidden0 = 128
-hidden1 = 512
+hidden1 = 128
 hidden2 = 128
 output_depth = 4
 
-replay = np.array([[0,0,0,0,0]])
+replay = []
 
-model, loss_fn, optimizer = get_model(input_depth, hidden0, hidden1, hidden2, output_depth, lr)
-
-# filename = '0-1000-checkpoint.pt'
-# model, optimizer, replay = load_model(model, optimizer, filename, evalMode=False)
-
+model, loss_fn, optimizer = get_model(
+    input_depth, hidden0, hidden1, hidden2, output_depth, lr)
 model_ = copy.deepcopy(model)
 
 env = UnityEnvironment(file_name="Banana.app")
@@ -40,7 +36,7 @@ brain = env.brains[brain_name]
 
 # train model
 
-epochs = 500
+epochs = 2000
 epsilon = 1.0  # decays over the course of training
 losses = []
 scores = []
@@ -50,20 +46,16 @@ hyperparams = (epochs, epsilon, gamma)
 actor_env = (model, model_, brain_name, env)
 training = (loss_fn, optimizer)
 exp_replay = (buffer_size, replay, batch_size)
-double_per = (e, a, c, c_step)
+double_per = (e, a, b, c, c_step)
 metrics = (losses, scores, average_scores)
 
-train_model(hyperparams, actor_env, training, exp_replay,
-            double_per, metrics, manual_override=False)
-
+start = perf_counter()
+train_model(hyperparams, actor_env, training, exp_replay, double_per,
+            metrics, early_stop_target=13., early_stop_threshold=3)
 save_model(model, optimizer, replay, 'checkpoint-{}.pt'.format(epochs))
+end = perf_counter()
+print((end - start))
 
 plot_losses(losses, 'losses-{}.png'.format(epochs))
 plot_scores(scores, 'scores-{}.png'.format(epochs))
-plot_scores(average_scores, 'scores-{}.png'.format(epochs), 'Ave Score')
-
-test_actor_env = (model, brain_name, env)
-attemps = 100
-filename = 'test_scores-{}.png'.format(epochs)
-
-test_model(test_actor_env, attemps, filename)
+plot_scores(average_scores, 'ave-scores-{}.png'.format(epochs),  plotName='Ave Score')
