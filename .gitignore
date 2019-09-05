@@ -125,3 +125,4 @@ dmypy.json
 
 Banana.app
 .DS_Store
+.vscode/
