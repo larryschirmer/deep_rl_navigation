@@ -1,55 +1,120 @@
-[//]: # (Image References)
+the code that you use for training the agent, along with the trained model weights.
+a report describing your learning algorithm. This is where you will describe the details of your implementation, along with ideas for future work.
 
-[image1]: https://user-images.githubusercontent.com/10624937/42135619-d90f2f28-7d12-11e8-8823-82b970a54d7e.gif "Trained Agent"
+# Environment Navigation with Deep Reinforcement Learning
 
-# Project 1: Navigation
+![](https://github.com/larryschirmer/deep_rl_navigation/raw/master/solved_navigator.gif)
 
-### Introduction
+## Important files
 
-For this project, you will train an agent to navigate (and collect bananas!) in a large, square world.  
+- This `README.md`: describes the project and its files in detail
+- `Navigation.ipynb`: working demonstration of the final trained modal
+- `Main.ipynb`: notebook containing the training methods
+- `checkpoint-2000.pt`: trained modal checkpoint
+- `main.py`: python file used to develop and train network
+- `helpers.py`: collection of functions used to train, test, and monitor model 
+- `model.py`: functions to return new model, optimizer, and loss function
 
-![Trained Agent][image1]
+## The Environment
 
-A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana.  Thus, the goal of your agent is to collect as many yellow bananas as possible while avoiding blue bananas.  
+The environment that this model solves is a Unity game with a discrete action space. Using:
 
-The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around agent's forward direction.  Given this information, the agent has to learn how to best select actions.  Four discrete actions are available, corresponding to:
-- **`0`** - move forward.
-- **`1`** - move backward.
-- **`2`** - turn left.
-- **`3`** - turn right.
+- 0 - move forward
+- 1 - move backward
+- 2 - turn left
+- 3 - turn right
+
+the agent navigates the environment picking up yellow bananas and avoiding blue bananas. A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana. The goal of the environment is for the agent to collect as many yellow bananas as possible while avoiding all the blue bananas.
+
+The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around the agent's forward direction. Given this information, the agent has to learn how to best select actions.
 
 The task is episodic, and in order to solve the environment, your agent must get an average score of +13 over 100 consecutive episodes.
 
-### Getting Started
+## How to Install
 
-1. Download the environment from one of the links below.  You need only select the environment that matches your operating system:
-    - Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux.zip)
-    - Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana.app.zip)
-    - Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86.zip)
-    - Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86_64.zip)
-    
-    (_For Windows users_) Check out [this link](https://support.microsoft.com/en-us/help/827218/how-to-determine-whether-a-computer-is-running-a-32-bit-version-or-64) if you need help with determining if your computer is running a 32-bit version or 64-bit version of the Windows operating system.
+Because one of the project dependencies requires a specific version of tensorflow only available in python 3.5 and earlier, its easiest to use conda to build the environment for this project.
 
-    (_For AWS_) If you'd like to train the agent on AWS (and have not [enabled a virtual screen](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md)), then please use [this link](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux_NoVis.zip) to obtain the environment.
+Run the following command to build this environment using the same dependancies I used:
 
-2. Place the file in the DRLND GitHub repository, in the `p1_navigation/` folder, and unzip (or decompress) the file. 
+```bash
+conda env create -f environment.yml python=3.5
+```
 
-### Instructions
+[See the conda docs for installation](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
-Follow the instructions in `Navigation.ipynb` to get started with training your own agent!  
+As for the game engine, select the environment that matches your operating system:
 
-### (Optional) Challenge: Learning from Pixels
+- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux.zip)
+- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana.app.zip)
+- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86.zip)
+- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86_64.zip)
 
-After you have successfully completed the project, if you're looking for an additional challenge, you have come to the right place!  In the project, your agent learned from information such as its velocity, along with ray-based perception of objects around its forward direction.  A more challenging task would be to learn directly from pixels!
+Then, place the file in the p1_navigation/ folder in the DRLND GitHub repository, and unzip (or decompress) the file.
 
-To solve this harder task, you'll need to download a new Unity environment.  This environment is almost identical to the project environment, where the only difference is that the state is an 84 x 84 RGB image, corresponding to the agent's first-person view.  (**Note**: Udacity students should not submit a project with this new environment.)
+(For Windows users) Check out this link if you need help with determining if your computer is running a 32-bit version or 64-bit version of the Windows operating system.
 
-You need only select the environment that matches your operating system:
-- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Linux.zip)
-- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana.app.zip)
-- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Windows_x86.zip)
-- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Windows_x86_64.zip)
+## Algorithms and Methods
 
-Then, place the file in the `p1_navigation/` folder in the DRLND GitHub repository, and unzip (or decompress) the file.  Next, open `Navigation_Pixels.ipynb` and follow the instructions to learn how to use the Python API to control the agent.
+The base code for this projects comes from the grid world implementation of "Deep Q-Learning" in chapter 3 of [Deep Reinforcement Learning in Action](https://www.manning.com/books/deep-reinforcement-learning-in-action?query=deep%20reinforcement), however many of the advanced techniques such at importance sampling and using a separate target network come from the Udacity's [Deep Reinforcement Learning Class](https://www.udacity.com/course/deep-reinforcement-learning-nanodegree--nd893)
 
-(_For AWS_) If you'd like to train the agent on AWS, you must follow the instructions to [set up X Server](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md), and then download the environment for the **Linux** operating system above.
+In deep q-learning, a deep neural network takes the state of the environment and returns the expected value for all the actions in the environment's action space. The goal being for the agent to navigate to where the rewards are in the most efficient manor. 
+
+The models handles this prediction with with a simple feedforward network written in pytorch. Using just a couple of linear layers with relu activation, the model is able to learn the relationship between the current state and the most valuable action to take. 
+
+```python
+# model.py Line: 7
+model = Sequential(
+    Linear(input_depth, hidden0),
+    ReLU(),
+    Linear(hidden0, hidden1),
+    ReLU(),
+    Linear(hidden1, hidden2),
+    ReLU(),
+    Linear(hidden2, output_depth)
+)
+
+loss_fn = MSELoss(reduction='sum')
+optimizer = Adam(model.parameters(), lr=lr)
+```
+
+While it learns, and even after it is fully trained, an action is chosen at random from the action space to promote exploration. This value (epsilon), is manages how greedy the network is allowed to be. 
+
+```python
+# helpers.py Line: 49
+if (random.random() < epsilon):
+    action = np.random.randint(0, 4)
+else:
+    action = (np.argmax(qval))
+```
+
+After each episode, the importance of each result is rated by how wrong/surprised the network was by the result. The value is stored with the other data from the episode and used to weigh which trajectories to batch for training.
+
+```python
+# helpers.py Line: 70
+error = np.absolute(qval[0][action] - update)
+priority = (error + e) ** a
+sample_importance = ((1/buffer_size) * (1/priority)) ** b
+```
+
+To improve the models ability to predict the max future reward for the next state, a second model is used. This second model is updated after a set number of time steps to keep the predictions stable enough to learn from. The stability of the second model's parameters create a fixed target for the first model to train towards.
+
+```python
+# helpers.py Line: 41
+if c_step > c:
+    model_.load_state_dict(model.state_dict())
+    c_step = 0
+```
+
+Batching the past experiences after each time step does a couple of things for the agent (model). Learning from the sum experience from each batch helps the agent find patterns to learn from. These experiences can also mitigate regressive behavior patterns from rare one off successes. Batching experiences also benefits the agent by offering more opportunity to review surprising predictions to learn and make better predictions when that state appears again. The overall result ends up being a smoother learning curve and higher rewards every episode.
+
+## Future Work
+
+In the future I could improve this project in two ways. 
+
+### Use convolutional layers to process game pixels
+
+First, the agent is trained to take in and act on a preprocessed version of its environment. This really limits the application of the model to just environments with this specific state space. By adapting the first layers of the model to accept game pixels as input, a model could be reused to learn other games.
+
+### Implement dueling DQN in the training process
+
+Secondly, the agent right now predicts which action will result in the highest future reward for the remainder of the episode, but it makes no distinction as to how valuable each time step is. It has been shown that providing the model with power to tell how valuable each time step is (whether it is about to get a reward or when any action will result in no reward), helps the agent achieve higher rewards sooner.
