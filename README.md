@@ -1,6 +1,3 @@
-the code that you use for training the agent, along with the trained model weights.
-a report describing your learning algorithm. This is where you will describe the details of your implementation, along with ideas for future work.
-
 # Environment Navigation with Deep Reinforcement Learning
 
 ![](https://github.com/larryschirmer/deep_rl_navigation/raw/master/solved_navigator.gif)
@@ -9,11 +6,16 @@ a report describing your learning algorithm. This is where you will describe the
 
 - This `README.md`: describes the project and its files in detail
 - `Navigation.ipynb`: working demonstration of the final trained modal
-- `Main.ipynb`: notebook containing the training methods
-- `checkpoint-2000.pt`: trained modal checkpoint
+- `Report.ipynb`: notebook containing the training methods
+- `checkpoint-1500.pt`: trained modal checkpoint
 - `main.py`: python file used to develop and train network
 - `helpers.py`: collection of functions used to train, test, and monitor model 
 - `model.py`: functions to return new model, optimizer, and loss function
+    - Files from the first successful training run
+        - `checkpoint-2000.pt`
+        - `ave-scores-2000.png`
+        - `scores-2000.png`
+        - `losses-2000.png`
 
 ## The Environment
 
@@ -24,9 +26,9 @@ The environment that this model solves is a Unity game with a discrete action sp
 - 2 - turn left
 - 3 - turn right
 
-the agent navigates the environment picking up yellow bananas and avoiding blue bananas. A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana. The goal of the environment is for the agent to collect as many yellow bananas as possible while avoiding all the blue bananas.
+The agent navigates the environment picking up yellow bananas and avoiding blue bananas. A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana. The goal of the environment is for the agent to collect as many yellow bananas as possible while avoiding all the blue bananas.
 
-The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around the agent's forward direction. Given this information, the agent has to learn how to best select actions.
+The state space has 37 dimensions and contains the agent's velocity, along with a ray-based perception of objects around the agent's forward direction. Given this information, the agent has to learn how to best select actions.
 
 The task is episodic, and in order to solve the environment, your agent must get an average score of +13 over 100 consecutive episodes.
 
@@ -49,9 +51,7 @@ As for the game engine, select the environment that matches your operating syste
 - Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86.zip)
 - Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Windows_x86_64.zip)
 
-Then, place the file in the p1_navigation/ folder in the DRLND GitHub repository, and unzip (or decompress) the file.
-
-(For Windows users) Check out this link if you need help with determining if your computer is running a 32-bit version or 64-bit version of the Windows operating system.
+Then, place the file in the project folder of this repository, and unzip (or decompress) the file.
 
 ## Algorithms and Methods
 
@@ -59,7 +59,7 @@ The base code for this projects comes from the grid world implementation of "Dee
 
 In deep q-learning, a deep neural network takes the state of the environment and returns the expected value for all the actions in the environment's action space. The goal being for the agent to navigate to where the rewards are in the most efficient manor. 
 
-The models handles this prediction with with a simple feedforward network written in pytorch. Using just a couple of linear layers with relu activation, the model is able to learn the relationship between the current state and the most valuable action to take. 
+The models handles this prediction with a simple feedforward network written in pytorch. Using just a couple of linear layers with relu activation, the model is able to learn the relationship between the current state and the most valuable action to take. 
 
 ```python
 # model.py Line: 7
@@ -77,7 +77,7 @@ loss_fn = MSELoss(reduction='sum')
 optimizer = Adam(model.parameters(), lr=lr)
 ```
 
-While it learns, and even after it is fully trained, an action is chosen at random from the action space to promote exploration. This value (epsilon), is manages how greedy the network is allowed to be. 
+While it learns, and even after it is fully trained, an action is chosen at random from the action space to promote exploration. This value (epsilon), manages how greedy the network is allowed to be. 
 
 ```python
 # helpers.py Line: 49
@@ -105,7 +105,7 @@ if c_step > c:
     c_step = 0
 ```
 
-Batching the past experiences after each time step does a couple of things for the agent (model). Learning from the sum experience from each batch helps the agent find patterns to learn from. These experiences can also mitigate regressive behavior patterns from rare one off successes. Batching experiences also benefits the agent by offering more opportunity to review surprising predictions to learn and make better predictions when that state appears again. The overall result ends up being a smoother learning curve and higher rewards every episode.
+Batching the past experiences after each time step does a couple of things for the agent (model). Learning from the sum of the experiences of each batch helps the agent find patterns to learn from. These experiences can also mitigate regressive behavior patterns from rare one off successes. Batching experiences also benefits the agent by offering more opportunity to review surprising predictions to learn and make better predictions when that state appears again. The overall result ends up being a smoother learning curve and higher rewards every episode.
 
 ## Future Work
 
